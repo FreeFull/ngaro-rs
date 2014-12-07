@@ -108,7 +108,6 @@ impl CPU {
     }
 
     pub fn push_data(&mut self, data: i32) {
-        println!("{}", self.memory.data_stack);
         self.memory.data_stack.push(data)
     }
 
@@ -138,13 +137,13 @@ impl CPU {
 
 impl Iterator<Action> for CPU {
     fn next(&mut self) -> Option<Action> {
+        let mut stderr = ::std::io::stdio::stderr();
+        let mut stderr = &mut stderr;
         let mut result = Empty;
-        /* println!("IP: {} Instr: {} Data Depth: {} Address Depth: {}",
-                 self.ip,
-                 self.memory.memory_space.get(self.ip as uint).map(|&x| opcode_to_name(x)),
-                 self.memory.data_stack.len(),
-                 self.memory.address_stack.len()); // */
-        match get_memory!(self, self.ip) {
+//        writeln!(stderr, "IP: {} Data: {} Address: {}", self.ip, self.memory.data_stack, self.memory.address_stack);
+        let instruction = get_memory!(self, self.ip);
+//        writeln!(stderr, "Instruction: {}", debug::opcode_to_name(instruction));
+        match instruction {
             0 => { } // NOP
             1 => { // LIT X
                 self.ip += 1;
@@ -188,11 +187,11 @@ impl Iterator<Action> for CPU {
                 let addr = self.pop_address();
                 self.ip = addr;
             }
-            10 => { // LT_JUMP
-                self.cond_stack_jump(|a, b| a < b);
+            10 => { // GT_JUMP
+                self.cond_stack_jump(|a, b| b > a);
             }
-            11 => { // GT_JUMP
-                self.cond_stack_jump(|a, b| a > b);
+            11 => { // LT_JUMP
+                self.cond_stack_jump(|a, b| b < a);
             }
             12 => { // NE_JUMP
                 self.cond_stack_jump(|a, b| a != b);
@@ -207,14 +206,13 @@ impl Iterator<Action> for CPU {
             }
             15 => { // STORE
                 let (addr, data) = (self.pop_data(), self.pop_data());
-                println!("Addr: {} Data: {}", addr, data);
                 *self.memory.memory_space.get_mut(addr as uint).expect("STORE beyond bounds.") = data;
             }
             16 => { // ADD
                 self.pop_2_push_1(|a, b| a+b);
             }
             17 => { // SUBTRACT
-                self.pop_2_push_1(|a, b| a-b);
+                self.pop_2_push_1(|a, b| b-a);
             }
             18 => { // MULTIPLY
                 self.pop_2_push_1(|a, b| a*b);
@@ -263,7 +261,6 @@ impl Iterator<Action> for CPU {
             }
             29 => { // OUT
                 let (port, data) = (self.pop_data(), self.pop_data());
-                // println!("OUT: port: {} data: {}", port, data);
                 self.ports.get_mut(port as uint).map(|x| *x = data);
             }
             30 => { // WAIT
@@ -287,39 +284,42 @@ pub enum Action {
     Wait,
 }
 
-fn opcode_to_name(opcode: i32) -> &'static str {
-    const NAMES: &'static [&'static str] = &[
-        "NOP",
-        "LIT",
-        "DUP",
-        "DROP",
-        "SWAP",
-        "PUSH",
-        "POP",
-        "LOOP",
-        "JUMP",
-        "RETURN",
-        "LT_JUMP",
-        "GT_JUMP",
-        "NE_JUMP",
-        "EQ_JUMP",
-        "FETCH",
-        "STORE",
-        "ADD",
-        "SUBTRACT",
-        "MULTIPLY",
-        "DIVMOD",
-        "AND",
-        "OR",
-        "XOR",
-        "SHL",
-        "SHR",
-        "ZERO_EXIT",
-        "INC",
-        "DEC",
-        "IN",
-        "OUT",
-        "WAIT",
-    ];
-    NAMES.get(opcode as uint).map_or("CALL", |&x| x)
+#[allow(dead_code)]
+mod debug {
+    pub fn opcode_to_name(opcode: i32) -> &'static str {
+        const NAMES: &'static [&'static str] = &[
+            "NOP",
+            "LIT",
+            "DUP",
+            "DROP",
+            "SWAP",
+            "PUSH",
+            "POP",
+            "LOOP",
+            "JUMP",
+            "RETURN",
+            "LT_JUMP",
+            "GT_JUMP",
+            "NE_JUMP",
+            "EQ_JUMP",
+            "FETCH",
+            "STORE",
+            "ADD",
+            "SUBTRACT",
+            "MULTIPLY",
+            "DIVMOD",
+            "AND",
+            "OR",
+            "XOR",
+            "SHL",
+            "SHR",
+            "ZERO_EXIT",
+            "INC",
+            "DEC",
+            "IN",
+            "OUT",
+            "WAIT",
+                ];
+        NAMES.get(opcode as uint).map_or("CALL", |&x| x)
+    }
 }
