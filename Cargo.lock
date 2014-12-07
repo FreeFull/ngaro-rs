@@ -1,4 +1,26 @@
 [root]
 name = "ngaro-rs"
 version = "0.0.1"
+dependencies = [
+ "docopt 0.6.12 (git+https://github.com/docopt/docopt.rs)",
+ "time 0.1.1 (git+https://github.com/rust-lang/time)",
+]
+
+[[package]]
+name = "docopt"
+version = "0.6.12"
+source = "git+https://github.com/docopt/docopt.rs#938d640720d91529252adddc79d020714cba7346"
+
+[[package]]
+name = "gcc"
+version = "0.1.0"
+source = "git+https://github.com/alexcrichton/gcc-rs#3caf7309ef72644cd56a9d3a6f515ae553683176"
+
+[[package]]
+name = "time"
+version = "0.1.1"
+source = "git+https://github.com/rust-lang/time#c22414be22894905e4692896da4d2d246a361797"
+dependencies = [
+ "gcc 0.1.0 (git+https://github.com/alexcrichton/gcc-rs)",
+]
 
