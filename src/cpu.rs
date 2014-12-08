@@ -37,6 +37,11 @@ impl Memory {
                 Err(e) => panic!(e),
             }
         }
+
+        while memory.capacity() > memory.len() {
+            memory.push(0);
+        }
+
         Memory {
             data_stack: Vec::new(),
             address_stack: Vec::new(),
@@ -173,11 +178,12 @@ impl Iterator<Action> for CPU {
             }
             7 => { // LOOP A
                 let mut data = self.pop_data();
-                self.ip += 1;
                 data -= 1;
                 if data > 0 {
                     self.jump();
                     self.push_data(data);
+                } else {
+                    self.ip += 1;
                 }
             }
             8 => { // JUMP A
