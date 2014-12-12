@@ -14,11 +14,14 @@ mod cpu;
 mod devices;
 
 static USAGE: &'static str = "
-Usage: ngaro-rs <image>
+Usage:
+  ngaro-rs <image>
+  ngaro-rs -h | --help
+  ngaro-rs --version
 
 Options:
     -h, --help      Show this message.
-    -v, --version   Display the version.
+    --version   Display the version.
 ";
 
 #[deriving(Decodable)]
@@ -32,6 +35,17 @@ fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.decode())
         .unwrap_or_else(|e| e.exit());
+
+    if args.flag_help {
+        println!("{}", USAGE);
+        return;
+    }
+
+    if args.flag_version {
+        println!("ngaro-rs 0.0.1 dev");
+        return;
+    }
+
     let mut cpu = CPU::new(&Path::new(&*args.arg_image));
     let mut devices = Devices::new();
     // Can't use a for loop, due to issues with borrowing scope.
