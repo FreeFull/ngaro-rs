@@ -1,7 +1,7 @@
 #![feature(macro_rules, globs, unsafe_destructor)]
 
+extern crate "rustc-serialize" as rustc_serialize;
 extern crate docopt;
-extern crate serialize;
 extern crate time;
 
 use docopt::Docopt;
@@ -24,7 +24,7 @@ Options:
     --version   Display the version.
 ";
 
-#[deriving(Decodable)]
+#[deriving(RustcDecodable)]
 struct Args {
     arg_image: String,
     flag_help: bool,
