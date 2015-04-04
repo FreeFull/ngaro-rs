@@ -4,8 +4,9 @@ name = "ngaro-rs"
 version = "0.0.1"
 authors = ["Filip Szczepański <jazz2rulez@gmail.com>"]
 
-[dependencies.docopt]
-git = "https://github.com/docopt/docopt.rs"
-
-[dependencies.time]
-git = "https://github.com/rust-lang/time"
+[dependencies]
+time = "*"
+docopt = "*"
+byteorder = "*"
+fdstream = "*"
+rustc-serialize = "*"

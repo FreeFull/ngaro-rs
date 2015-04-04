@@ -1,17 +1,21 @@
-use std::io::File;
-use std::io::IoErrorKind::EndOfFile;
+use std::fs::File;
+use std::path::Path;
 use std::cmp::max;
+use std::ops::{Deref, DerefMut};
+
+use byteorder::{LittleEndian, ReadBytesExt};
+
 use self::Action::*;
 
 macro_rules! get_memory {
     ($foo: ident, $addr: expr) => {
-        match $foo.memory.memory_space.get($addr as uint) {
+        match $foo.memory.memory_space.get($addr as usize) {
             Some(&x) => x,
             None => return None,
         }
     };
     ($foo: ident, $addr: expr, $rval: expr) => {
-        match $foo.memory.memory_space.get($addr as uint) {
+        match $foo.memory.memory_space.get($addr as usize) {
             Some(&x) => x,
             None => return $rval,
         }
@@ -27,13 +31,13 @@ struct Memory {
 impl Memory {
     fn new(path: &Path) -> Memory {
         let mut file = File::open(path).unwrap();
-        let size = file.stat().unwrap().size / 4;
-        let mut memory = Vec::with_capacity(max(size as uint, 1024*1024)); // 4MB or image size
+        let size = file.metadata().unwrap().len() / 4;
+        let mut memory = Vec::with_capacity(max(size as usize, 1024*1024)); // 4MB or image size
 
         loop {
-            match file.read_le_i32() {
+            match file.read_i32::<LittleEndian>() {
                 Ok(x) => memory.push(x),
-                Err(ref e) if e.kind == EndOfFile => break,
+                Err(::byteorder::Error::UnexpectedEOF) => break,
                 Err(e) => panic!(e),
             }
         }
@@ -54,20 +58,20 @@ pub struct Ports<'a> {
     ports: &'a mut [i32]
 }
 
-#[unsafe_destructor]
 impl<'a> Drop for Ports<'a> {
     fn drop(&mut self) {
         self.ports.get_mut(0).map(|x| *x = 1);
     }
 }
 
-impl<'a> Deref<[i32]> for Ports<'a> {
+impl<'a> Deref for Ports<'a> {
+    type Target = [i32];
     fn deref(&self) -> &[i32] {
         &*self.ports
     }
 }
 
-impl<'a> DerefMut<[i32]> for Ports<'a> {
+impl<'a> DerefMut for Ports<'a> {
     fn deref_mut(&mut self) -> &mut [i32] {
         self.ports
     }
@@ -82,7 +86,7 @@ pub struct Info {
 pub struct CPU {
     memory: Memory,
     ip: i32,
-    ports: [i32, ..12]
+    ports: [i32; 12]
 }
 
 impl CPU {
@@ -90,12 +94,12 @@ impl CPU {
         CPU {
             memory: Memory::new(path),
             ip: 0,
-            ports: [0, ..12],
+            ports: [0; 12],
         }
     }
 
     pub fn ports_and_stack<'a>(&'a mut self) -> (Ports<'a>, &'a mut Vec<i32>) {
-        let ports = Ports { ports: self.ports.as_mut_slice() };
+        let ports = Ports { ports: &mut self.ports };
         let stack = &mut self.memory.data_stack;
         (ports, stack)
     }
@@ -129,25 +133,25 @@ impl CPU {
         self.ip = get_memory!(self, self.ip, panic!("Jump out of bounds.")) - 1;
     }
 
-    fn cond_stack_jump(&mut self, cond: |i32, i32| -> bool) {
+    fn cond_stack_jump<F>(&mut self, cond: F)
+        where F: Fn(i32, i32) -> bool
+    {
         let (a, b) = (self.pop_data(), self.pop_data());
         if cond(a,b) { self.jump() } else { self.ip += 1; }
     }
 
-    fn pop_2_push_1(&mut self, func: |i32, i32| -> i32) {
+    fn pop_2_push_1<F>(&mut self, func: F)
+        where F: FnOnce(i32, i32) -> i32
+    {
         let (a, b) = (self.pop_data(), self.pop_data());
         self.push_data(func(a,b));
     }
 }
 
-impl Iterator<Action> for CPU {
-    fn next(&mut self) -> Option<Action> {
-        let mut stderr = ::std::io::stdio::stderr();
-        let mut stderr = &mut stderr;
+impl CPU {
+    pub fn next(&mut self) -> Option<Action> {
         let mut result = Empty;
-//        writeln!(stderr, "IP: {} Data: {} Address: {}", self.ip, self.memory.data_stack, self.memory.address_stack);
         let instruction = get_memory!(self, self.ip);
-//        writeln!(stderr, "Instruction: {}", debug::opcode_to_name(instruction));
         match instruction {
             0 => { } // NOP
             1 => { // LIT X
@@ -207,12 +211,12 @@ impl Iterator<Action> for CPU {
             }
             14 => { // FETCH
                 let addr = self.pop_data();
-                let data = *self.memory.memory_space.get(addr as uint).expect("FETCH beyond bounds.");
+                let data = *self.memory.memory_space.get(addr as usize).expect("FETCH beyond bounds.");
                 self.push_data(data);
             }
             15 => { // STORE
                 let (addr, data) = (self.pop_data(), self.pop_data());
-                *self.memory.memory_space.get_mut(addr as uint).expect("STORE beyond bounds.") = data;
+                *self.memory.memory_space.get_mut(addr as usize).expect("STORE beyond bounds.") = data;
             }
             16 => { // ADD
                 self.pop_2_push_1(|a, b| a+b);
@@ -238,10 +242,10 @@ impl Iterator<Action> for CPU {
                 self.pop_2_push_1(|a, b| a^b);
             }
             23 => { // SHL
-                self.pop_2_push_1(|a, b| b<<(a as uint));
+                self.pop_2_push_1(|a, b| b<<(a as usize));
             }
             24 => { // SHR
-                self.pop_2_push_1(|a, b| (b as u32>>(a as uint)) as i32);
+                self.pop_2_push_1(|a, b| (b as u32>>(a as usize)) as i32);
             }
             25 => { // ZERO_EXIT
                 let data = self.pop_data();
@@ -261,13 +265,13 @@ impl Iterator<Action> for CPU {
             }
             28 => { // IN
                 let port = self.pop_data();
-                let data = self.ports.get(port as uint).map_or(0, |&x| x);
+                let data = self.ports.get(port as usize).map_or(0, |&x| x);
                 self.push_data(data);
-                self.ports.get_mut(port as uint).map(|x| *x = 0);
+                self.ports.get_mut(port as usize).map(|x| *x = 0);
             }
             29 => { // OUT
                 let (port, data) = (self.pop_data(), self.pop_data());
-                self.ports.get_mut(port as uint).map(|x| *x = data);
+                self.ports.get_mut(port as usize).map(|x| *x = data);
             }
             30 => { // WAIT
                 if self.ports.get(0).map_or(false, |&x| x == 0) {
@@ -326,6 +330,6 @@ mod debug {
             "OUT",
             "WAIT",
                 ];
-        NAMES.get(opcode as uint).map_or("CALL", |&x| x)
+        NAMES.get(opcode as usize).map_or("CALL", |&x| x)
     }
 }

@@ -1,4 +1,8 @@
-use std::io::stdio::{StdReader, StdWriter, stdin_raw, stdout_raw};
+use std::io::{Read, Write};
+
+use fdstream::FdStream;
+
+use byteorder::ReadBytesExt;
 
 use time::get_time;
 
@@ -12,8 +16,8 @@ pub struct Devices {
 impl Devices {
     pub fn new() -> Devices {
         Devices {
-            keyboard: Keyboard { stdin: stdin_raw() },
-            char_screen: Screen { stdout: stdout_raw() },
+            keyboard: Keyboard { stdin: FdStream::new(0) },
+            char_screen: Screen { stdout: FdStream::new(1) },
         }
     }
 
@@ -23,7 +27,7 @@ impl Devices {
         for (index, data) in ports.iter_mut().enumerate().skip(1) {
             if *data != 0 {
                 match index {
-                    1 => { *data = self.keyboard.read(); }
+                    1 => { *data = self.keyboard.read().unwrap(); }
                     2 => {
                         let value = stack.pop().expect("Data stack underflow.");
                         self.char_screen.display(value);
@@ -50,21 +54,21 @@ impl Devices {
 }
 
 struct Keyboard {
-    stdin: StdReader,
+    stdin: FdStream,
 }
 
 impl Keyboard {
-    fn read(&mut self) -> i32 {
-        self.stdin.read_u8().unwrap() as i32
+    fn read(&mut self) -> ::byteorder::Result<i32> {
+        self.stdin.read_u8().map(|x| x as i32)
     }
 }
 
 struct Screen {
-    stdout: StdWriter,
+    stdout: FdStream,
 }
 
 impl Screen {
     fn display(&mut self, value: i32) {
-        self.stdout.write(&[value as u8]).unwrap();
+        self.stdout.write_all(&[value as u8]).unwrap();
     }
 }

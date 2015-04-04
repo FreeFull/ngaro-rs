@@ -1,8 +1,10 @@
-#![feature(macro_rules, globs, unsafe_destructor)]
-
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate docopt;
 extern crate time;
+extern crate byteorder;
+extern crate fdstream;
+
+use std::path::Path;
 
 use docopt::Docopt;
 
@@ -24,7 +26,7 @@ Options:
     --version   Display the version.
 ";
 
-#[deriving(RustcDecodable)]
+#[derive(RustcDecodable)]
 struct Args {
     arg_image: String,
     flag_help: bool,
@@ -46,7 +48,7 @@ fn main() {
         return;
     }
 
-    let mut cpu = CPU::new(&Path::new(&*args.arg_image));
+    let mut cpu = CPU::new(Path::new(&*args.arg_image));
     let mut devices = Devices::new();
     // Can't use a for loop, due to issues with borrowing scope.
     loop {
