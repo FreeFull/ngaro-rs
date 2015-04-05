@@ -9,7 +9,7 @@ Usage
 The virtual machine's primary software is the [Retro Forth](http://www.forthworks.com/retro) distribution's retroImage file. Once you have downloaded it, you can run it using this command:
 
 ``` sh
-cargo run path/to/retroImage
+stty -icanon -echo; cargo run --release /path/to/retroImage
 ```
 
 Thanks
