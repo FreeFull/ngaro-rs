@@ -12,6 +12,8 @@ The virtual machine's primary software is the [Retro Forth](http://www.forthwork
 stty -icanon -echo; cargo run --release /path/to/retroImage
 ```
 
+Once it's done, you'll likely want to run `reset` to set your terminal back to default.
+
 Thanks
 ------
 
