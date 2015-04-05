@@ -146,146 +146,144 @@ impl CPU {
         let (a, b) = (self.pop_data(), self.pop_data());
         self.push_data(func(a,b));
     }
-}
 
-impl CPU {
     pub fn next(&mut self) -> Option<Action> {
-        let mut result = Empty;
-        let instruction = get_memory!(self, self.ip);
-        match instruction {
-            0 => { } // NOP
-            1 => { // LIT X
-                self.ip += 1;
-                let data = get_memory!(self, self.ip);
-                self.push_data(data);
-            }
-            2 => { // DUP
-                let item = self.pop_data();
-                self.push_data(item);
-                self.push_data(item);
-            }
-            3 => { // DROP
-                self.pop_data();
-            }
-            4 => { // SWAP
-                let (a, b) = (self.pop_data(), self.pop_data());
-                self.push_data(a);
-                self.push_data(b);
-            }
-            5 => { // PUSH
-                let data = self.pop_data();
-                self.push_address(data);
-            }
-            6 => { // POP
-                let data = self.pop_address();
-                self.push_data(data);
-            }
-            7 => { // LOOP A
-                let mut data = self.pop_data();
-                data -= 1;
-                if data > 0 {
-                    self.jump();
-                    self.push_data(data);
-                } else {
+        loop {
+            let instruction = get_memory!(self, self.ip);
+            match instruction {
+                0 => { } // NOP
+                1 => { // LIT X
                     self.ip += 1;
-                }
-            }
-            8 => { // JUMP A
-                self.jump();
-            }
-            9 => { // RETURN
-                let addr = self.pop_address();
-                self.ip = addr;
-            }
-            10 => { // GT_JUMP
-                self.cond_stack_jump(|a, b| b > a);
-            }
-            11 => { // LT_JUMP
-                self.cond_stack_jump(|a, b| b < a);
-            }
-            12 => { // NE_JUMP
-                self.cond_stack_jump(|a, b| a != b);
-            }
-            13 => { // EQ_JUMP
-                self.cond_stack_jump(|a, b| a == b);
-            }
-            14 => { // FETCH
-                let addr = self.pop_data();
-                let data = *self.memory.memory_space.get(addr as usize).expect("FETCH beyond bounds.");
-                self.push_data(data);
-            }
-            15 => { // STORE
-                let (addr, data) = (self.pop_data(), self.pop_data());
-                *self.memory.memory_space.get_mut(addr as usize).expect("STORE beyond bounds.") = data;
-            }
-            16 => { // ADD
-                self.pop_2_push_1(|a, b| a+b);
-            }
-            17 => { // SUBTRACT
-                self.pop_2_push_1(|a, b| b-a);
-            }
-            18 => { // MULTIPLY
-                self.pop_2_push_1(|a, b| a*b);
-            }
-            19 => { // DIVMOD
-                let (a, b) = (self.pop_data(), self.pop_data());
-                self.push_data(b % a);
-                self.push_data(b / a);
-            }
-            20 => { // AND
-                self.pop_2_push_1(|a, b| a&b);
-            }
-            21 => { // OR
-                self.pop_2_push_1(|a, b| a|b);
-            }
-            22 => { // XOR
-                self.pop_2_push_1(|a, b| a^b);
-            }
-            23 => { // SHL
-                self.pop_2_push_1(|a, b| b<<(a as usize));
-            }
-            24 => { // SHR
-                self.pop_2_push_1(|a, b| (b as u32>>(a as usize)) as i32);
-            }
-            25 => { // ZERO_EXIT
-                let data = self.pop_data();
-                if data == 0 {
-                    self.ip = self.pop_address();
-                } else {
+                    let data = get_memory!(self, self.ip);
                     self.push_data(data);
                 }
-            }
-            26 => { // INC
-                let data = self.pop_data();
-                self.push_data(data+1);
-            }
-            27 => { // DEC
-                let data = self.pop_data();
-                self.push_data(data-1);
-            }
-            28 => { // IN
-                let port = self.pop_data();
-                let data = self.ports.get(port as usize).map_or(0, |&x| x);
-                self.push_data(data);
-                self.ports.get_mut(port as usize).map(|x| *x = 0);
-            }
-            29 => { // OUT
-                let (port, data) = (self.pop_data(), self.pop_data());
-                self.ports.get_mut(port as usize).map(|x| *x = data);
-            }
-            30 => { // WAIT
-                if self.ports.get(0).map_or(false, |&x| x == 0) {
-                    result = Wait;
+                2 => { // DUP
+                    let item = self.pop_data();
+                    self.push_data(item);
+                    self.push_data(item);
                 }
-            }
-            x => { // Implicit call
-                let ip = self.ip;
-                self.push_address(ip);
-                self.ip = x - 1;
-            }
-        };
-        self.ip += 1;
-        return Some(result);
+                3 => { // DROP
+                    self.pop_data();
+                }
+                4 => { // SWAP
+                    let (a, b) = (self.pop_data(), self.pop_data());
+                    self.push_data(a);
+                    self.push_data(b);
+                }
+                5 => { // PUSH
+                    let data = self.pop_data();
+                    self.push_address(data);
+                }
+                6 => { // POP
+                    let data = self.pop_address();
+                    self.push_data(data);
+                }
+                7 => { // LOOP A
+                    let mut data = self.pop_data();
+                    data -= 1;
+                    if data > 0 {
+                        self.jump();
+                        self.push_data(data);
+                    } else {
+                        self.ip += 1;
+                    }
+                }
+                8 => { // JUMP A
+                    self.jump();
+                }
+                9 => { // RETURN
+                    let addr = self.pop_address();
+                    self.ip = addr;
+                }
+                10 => { // GT_JUMP
+                    self.cond_stack_jump(|a, b| b > a);
+                }
+                11 => { // LT_JUMP
+                    self.cond_stack_jump(|a, b| b < a);
+                }
+                12 => { // NE_JUMP
+                    self.cond_stack_jump(|a, b| a != b);
+                }
+                13 => { // EQ_JUMP
+                    self.cond_stack_jump(|a, b| a == b);
+                }
+                14 => { // FETCH
+                    let addr = self.pop_data();
+                    let data = *self.memory.memory_space.get(addr as usize).expect("FETCH beyond bounds.");
+                    self.push_data(data);
+                }
+                15 => { // STORE
+                    let (addr, data) = (self.pop_data(), self.pop_data());
+                    *self.memory.memory_space.get_mut(addr as usize).expect("STORE beyond bounds.") = data;
+                }
+                16 => { // ADD
+                    self.pop_2_push_1(|a, b| a+b);
+                }
+                17 => { // SUBTRACT
+                    self.pop_2_push_1(|a, b| b-a);
+                }
+                18 => { // MULTIPLY
+                    self.pop_2_push_1(|a, b| a*b);
+                }
+                19 => { // DIVMOD
+                    let (a, b) = (self.pop_data(), self.pop_data());
+                    self.push_data(b % a);
+                    self.push_data(b / a);
+                }
+                20 => { // AND
+                    self.pop_2_push_1(|a, b| a&b);
+                }
+                21 => { // OR
+                    self.pop_2_push_1(|a, b| a|b);
+                }
+                22 => { // XOR
+                    self.pop_2_push_1(|a, b| a^b);
+                }
+                23 => { // SHL
+                    self.pop_2_push_1(|a, b| b<<(a as usize));
+                }
+                24 => { // SHR
+                    self.pop_2_push_1(|a, b| (b as u32>>(a as usize)) as i32);
+                }
+                25 => { // ZERO_EXIT
+                    let data = self.pop_data();
+                    if data == 0 {
+                        self.ip = self.pop_address();
+                    } else {
+                        self.push_data(data);
+                    }
+                }
+                26 => { // INC
+                    let data = self.pop_data();
+                    self.push_data(data+1);
+                }
+                27 => { // DEC
+                    let data = self.pop_data();
+                    self.push_data(data-1);
+                }
+                28 => { // IN
+                    let port = self.pop_data();
+                    let data = self.ports.get(port as usize).map_or(0, |&x| x);
+                    self.push_data(data);
+                    self.ports.get_mut(port as usize).map(|x| *x = 0);
+                }
+                29 => { // OUT
+                    let (port, data) = (self.pop_data(), self.pop_data());
+                    self.ports.get_mut(port as usize).map(|x| *x = data);
+                }
+                30 => { // WAIT
+                    if self.ports.get(0).map_or(false, |&x| x == 0) {
+                        return Some(Wait);
+                    }
+                }
+                x => { // Implicit call
+                    let ip = self.ip;
+                    self.push_address(ip);
+                    self.ip = x - 1;
+                }
+            };
+            self.ip += 1;
+        }
     }
 }
 

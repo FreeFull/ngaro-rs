@@ -51,12 +51,10 @@ fn main() {
     let mut cpu = CPU::new(Path::new(&*args.arg_image));
     let mut devices = Devices::new();
     // Can't use a for loop, due to issues with borrowing scope.
-    loop {
-        if let Some(action) = cpu.next() {
-            match action {
-                A::Wait => if devices.do_io(&mut cpu) { break; },
-                _ => {}
-            }
-        } else { break; }
+    while let Some(action) = cpu.next() {
+        match action {
+            A::Wait => if devices.do_io(&mut cpu) { break; },
+            _ => {}
+        }
     }
 }
