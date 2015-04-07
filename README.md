@@ -3,6 +3,8 @@ ngaro-rs
 
 A Rust implementation of the Ngaro Virtual Machine.
 
+Note: This project will build with Rust 1.0 Beta. It might also build with the Rust nightly, but it's not strictly guaranteed to.
+
 Usage
 -----
 
