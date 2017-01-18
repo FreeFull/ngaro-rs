@@ -8,7 +8,7 @@ Note: This project will build with Rust 1.0 Beta, 1.0, 1.1 and 1.2 Stable.
 Usage
 -----
 
-The virtual machine's primary software is the [Retro Forth](http://www.forthworks.com/retro) distribution's retroImage file. Once you have downloaded it, you can run it using this command:
+The virtual machine's primary software is the [RETRO 11 Forth](http://forthworks.com/retro/) distribution's retroImage file. Once you have downloaded it, you can run it using this command:
 
 ``` sh
 stty -icanon -echo; cargo run --release /path/to/retroImage
