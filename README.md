@@ -3,18 +3,20 @@ ngaro-rs
 
 A Rust implementation of the Ngaro Virtual Machine.
 
-Note: This project will build with Rust 1.0 Beta, 1.0, 1.1 and 1.2 Stable.
-
 Usage
 -----
 
 The virtual machine's primary software is the [RETRO 11 Forth](http://forthworks.com/retro/) distribution's retroImage file. Once you have downloaded it, you can run it using this command:
 
 ``` sh
-stty -icanon -echo; cargo run --release /path/to/retroImage
+cargo run --release path/to/retroImage
 ```
 
-Once it's done, you'll likely want to run `reset` to set your terminal back to default.
+Optionally, you can also specify a path to the script you wanted to load:
+
+``` sh
+cargo run --release path/to/retroImage path/to/script.rx
+```
 
 Thanks
 ------

@@ -37,7 +37,7 @@ impl Memory {
         loop {
             match file.read_i32::<LittleEndian>() {
                 Ok(x) => memory.push(x),
-                Err(::byteorder::Error::UnexpectedEOF) => break,
+                Err(ref e) if e.kind() == ::std::io::ErrorKind::UnexpectedEof => break,
                 Err(e) => panic!(e),
             }
         }
